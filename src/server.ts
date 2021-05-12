@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 
+import User from "./controllers/user";
+
 // Constants
 const PORT = 8080;
 const HOST = "0.0.0.0";
@@ -12,6 +14,10 @@ app.use(cors());
 
 app.get("/", (_, res) => {
 	res.send("Hello World");
+});
+
+app.post("/user/add", () => {
+	User.createUser();
 });
 
 app.listen(PORT, HOST, () => {
