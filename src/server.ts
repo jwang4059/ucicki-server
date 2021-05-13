@@ -24,6 +24,10 @@ app.post("/login", (req, res) => {
 	User.login(req, res);
 });
 
+app.post("/deactivate", (req, res) => {
+	User.deactivate(req, res);
+});
+
 app.listen(PORT, HOST, () => {
 	console.log(`Running on http://${HOST}:${PORT}`);
 });
