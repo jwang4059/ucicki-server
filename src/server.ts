@@ -16,8 +16,12 @@ app.get("/", (_, res) => {
 	res.send("Hello World");
 });
 
-app.post("/user/add", () => {
-	User.createUser();
+app.post("/register", (req, res) => {
+	User.register(req, res);
+});
+
+app.post("/login", (req, res) => {
+	User.login(req, res);
 });
 
 app.listen(PORT, HOST, () => {
