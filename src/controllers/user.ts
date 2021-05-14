@@ -1,35 +1,84 @@
 import db from "../db";
 import { Request, Response } from "express";
+import argon2 from "argon2";
+import {
+	validateRegisterParameters,
+	validateLoginParameters,
+} from "../utils/validate";
 
 const register = async (req: Request, res: Response) => {
 	const { userId, firstName, lastName, phone, email, password } = req.body;
 
-	const date = new Date();
+	const validationResults = validateRegisterParameters(
+		userId,
+		firstName,
+		lastName,
+		phone,
+		email,
+		password
+	);
+
+	if (!validationResults.valid) {
+		res.status(400).json(validationResults.error);
+		return;
+	}
+
+	const dob = new Date();
 
 	try {
-		const { rows } = await db.query(
-			"INSERT INTO users(user_id, first_name, last_name, dob, phone, email, password_hash, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-			[userId, firstName, lastName, date, phone, email, password, date, date]
+		const passwordHash = await argon2.hash(password);
+
+		await db.query(
+			"INSERT INTO users(user_id, first_name, last_name, dob, phone, email, password_hash, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)",
+			[userId, firstName, lastName, dob, phone, email, passwordHash, new Date()]
 		);
+
+		const { rows } = await db.query("SELECT * FROM users WHERE user_id = $1", [
+			userId,
+		]);
 
 		res.json(rows[0]);
 	} catch (e) {
-		console.log(e);
 		res.status(400).json(e);
 	}
 };
 
 const login = async (req: Request, res: Response) => {
-	const { email } = req.body;
+	const { email, password } = req.body;
+
+	const validationResults = validateLoginParameters(email, password);
+
+	if (!validationResults.valid) {
+		res.status(400).json(validationResults.error);
+		return;
+	}
 
 	try {
 		const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [
 			email,
 		]);
 
-		res.json(rows[0]);
+		if (!rows[0]) {
+			res.status(400).json({
+				status: "failed",
+				field: "login",
+				message: "Invalid login credentials",
+			});
+			return;
+		}
+
+		const passwordHash = rows[0].password_hash;
+
+		if (await argon2.verify(passwordHash, password)) {
+			res.json(rows[0]);
+		} else {
+			res.status(400).json({
+				status: "failed",
+				field: "login",
+				message: "Invalid login credentials",
+			});
+		}
 	} catch (e) {
-		console.log(e);
 		res.status(400).json(e);
 	}
 };
