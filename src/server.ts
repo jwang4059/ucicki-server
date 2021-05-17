@@ -7,6 +7,12 @@ import cors from "cors";
 import { __prod__, COOKIE_NAME } from "./constants";
 import User from "./controllers/user";
 
+declare module "express-session" {
+	interface Session {
+		userId: string;
+	}
+}
+
 // Constants
 const PORT = 4000;
 const HOST = "0.0.0.0";
@@ -17,7 +23,12 @@ const RedisStore = connectRedis(session);
 const redisClient = redis.createClient();
 
 app.set("trust porxy", 1);
-app.use(cors());
+app.use(
+	cors({
+		origin: "http://localhost:3000",
+		credentials: true,
+	})
+);
 
 app.use(
 	session({

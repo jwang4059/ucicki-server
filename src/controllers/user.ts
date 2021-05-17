@@ -20,6 +20,7 @@ const register = async (req: Request, res: Response) => {
 	);
 
 	if (errors) {
+		console.log("validationErrors", errors);
 		res.status(400).json(errors);
 		return;
 	}
@@ -36,8 +37,11 @@ const register = async (req: Request, res: Response) => {
 			userId,
 		]);
 
+		req.session.userId = userId;
+
 		res.json(rows[0]);
 	} catch (e) {
+		console.log("psqlErrors: ", e);
 		res.status(400).json(e);
 	}
 };
