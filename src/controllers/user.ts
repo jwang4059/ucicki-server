@@ -7,23 +7,22 @@ import {
 } from "../utils/validate";
 
 const register = async (req: Request, res: Response) => {
-	const { userId, firstName, lastName, phone, email, password } = req.body;
+	const { userId, firstName, lastName, dob, phone, email, password } = req.body;
 
-	const validationResults = validateRegisterParameters(
+	const errors = validateRegisterParameters(
 		userId,
 		firstName,
 		lastName,
+		dob,
 		phone,
 		email,
 		password
 	);
 
-	if (!validationResults.valid) {
-		res.status(400).json(validationResults.error);
+	if (errors) {
+		res.status(400).json(errors);
 		return;
 	}
-
-	const dob = new Date();
 
 	try {
 		const passwordHash = await argon2.hash(password);
@@ -46,10 +45,10 @@ const register = async (req: Request, res: Response) => {
 const login = async (req: Request, res: Response) => {
 	const { email, password } = req.body;
 
-	const validationResults = validateLoginParameters(email, password);
+	const errors = validateLoginParameters(email, password);
 
-	if (!validationResults.valid) {
-		res.status(400).json(validationResults.error);
+	if (errors) {
+		res.status(400).json(errors);
 		return;
 	}
 
