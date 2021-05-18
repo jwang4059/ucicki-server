@@ -20,7 +20,6 @@ const register = async (req: Request, res: Response) => {
 	);
 
 	if (errors) {
-		console.log("validationErrors", errors);
 		res.status(400).json(errors);
 		return;
 	}
@@ -33,23 +32,18 @@ const register = async (req: Request, res: Response) => {
 			[userId, firstName, lastName, dob, phone, email, passwordHash, new Date()]
 		);
 
-		const { rows } = await db.query("SELECT * FROM users WHERE user_id = $1", [
-			userId,
-		]);
-
 		req.session.userId = userId;
 
-		res.json(rows[0]);
+		res.json(null);
 	} catch (e) {
-		console.log("psqlErrors: ", e);
 		res.status(400).json(e);
 	}
 };
 
 const login = async (req: Request, res: Response) => {
-	const { email, password } = req.body;
+	const { userId, password } = req.body;
 
-	const errors = validateLoginParameters(email, password);
+	const errors = validateLoginParameters(userId, password);
 
 	if (errors) {
 		res.status(400).json(errors);
@@ -57,13 +51,13 @@ const login = async (req: Request, res: Response) => {
 	}
 
 	try {
-		const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [
-			email,
-		]);
+		const { rows } = await db.query(
+			"SELECT password_hash FROM users WHERE user_id = $1",
+			[userId]
+		);
 
 		if (!rows[0]) {
 			res.status(400).json({
-				status: "failed",
 				field: "login",
 				message: "Invalid login credentials",
 			});
@@ -73,14 +67,35 @@ const login = async (req: Request, res: Response) => {
 		const passwordHash = rows[0].password_hash;
 
 		if (await argon2.verify(passwordHash, password)) {
-			res.json(rows[0]);
+			req.session.userId = userId;
+			res.json(null);
 		} else {
 			res.status(400).json({
-				status: "failed",
 				field: "login",
 				message: "Invalid login credentials",
 			});
 		}
+	} catch (e) {
+		res.status(400).json(e);
+	}
+};
+
+const settings = async (req: Request, res: Response) => {
+	if (!req.session.userId) {
+		res.status(400).json({
+			field: "login",
+			message: "Must be signed in to view user settings",
+		});
+		return;
+	}
+
+	try {
+		const { rows } = await db.query(
+			"SELECT user_id, first_name, last_name, dob, phone, email, created_at FROM users WHERE user_id = $1",
+			[req.session.userId]
+		);
+
+		res.json(rows[0]);
 	} catch (e) {
 		res.status(400).json(e);
 	}
@@ -122,6 +137,7 @@ const deactivate = async (req: Request, res: Response) => {
 export default {
 	register,
 	login,
+	settings,
 	update,
 	deactivate,
 };

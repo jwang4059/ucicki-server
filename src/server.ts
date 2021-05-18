@@ -35,10 +35,12 @@ app.use(
 		store: new RedisStore({ client: redisClient }),
 		name: COOKIE_NAME,
 		cookie: {
-			maxAge: 1000 * 60 * 60 * 7, // 7 days
+			domain: "localhost",
+			path: "/",
 			httpOnly: true,
 			sameSite: "lax",
 			secure: __prod__,
+			maxAge: 1000 * 60 * 60 * 7, // 7 days
 		},
 		secret: "secret",
 		saveUninitialized: false,
@@ -58,6 +60,10 @@ app.post("/register", (req, res) => {
 
 app.post("/login", (req, res) => {
 	User.login(req, res);
+});
+
+app.get("/settings", (req, res) => {
+	User.settings(req, res);
 });
 
 app.post("/deactivate", (req, res) => {
