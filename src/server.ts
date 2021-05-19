@@ -66,6 +66,14 @@ app.post("/logout", (req, res) => {
 	User.logout(req, res);
 });
 
+app.post("/forgot-password", (req, res) => {
+	User.forgotPassword(req, res, redisClient);
+});
+
+app.post("/change-password", (req, res) => {
+	User.changePassword(req, res, redisClient);
+});
+
 app.get("/user/info", (req, res) => {
 	User.info(req, res);
 });

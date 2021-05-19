@@ -1,6 +1,7 @@
 import db from "../db";
 import { Request, Response } from "express";
 import { RedisClient } from "redis";
+import { promisify } from "util";
 import argon2 from "argon2";
 import { v4 as uuidv4 } from "uuid";
 
@@ -9,6 +10,7 @@ import {
 	validateRegisterParameters,
 	validateLoginParameters,
 	validateEmail,
+	validateChangePasswordParameters,
 } from "../utils/validate";
 import { createErrorMsg, createSuccessMsg } from "../utils/messages";
 import { sendEmail } from "../utils/sendEmail";
@@ -137,6 +139,45 @@ const forgotPassword = async (
 	}
 };
 
+const changePassword = async (
+	req: Request,
+	res: Response,
+	client: RedisClient
+) => {
+	const { token, password } = req.body;
+
+	const errors = validateChangePasswordParameters(token, password);
+
+	if (errors) {
+		res.status(400).json(errors);
+		return;
+	}
+
+	const key = FORGET_PASSWORD_PREFIX + token;
+
+	try {
+		const getAsync = promisify(client.get).bind(client);
+		const userId = await getAsync(key);
+
+		if (!userId) {
+			res.status(400).json(createErrorMsg("Token has expired"));
+		}
+
+		const passwordHash = await argon2.hash(password);
+
+		await db.query("UPDATE users SET password_hash = $1 WHERE user_id = $2", [
+			passwordHash,
+			userId,
+		]);
+
+		client.del(key);
+
+		res.json(createSuccessMsg("Successfully changed password."));
+	} catch (e) {
+		res.status(400).json(createErrorMsg(e.detail));
+	}
+};
+
 const info = async (req: Request, res: Response) => {
 	if (!req.session.userId) {
 		res.status(400).json(createErrorMsg("Must be logged in to view this page"));
@@ -193,6 +234,7 @@ export default {
 	login,
 	logout,
 	forgotPassword,
+	changePassword,
 	info,
 	update,
 	deactivate,

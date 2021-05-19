@@ -147,5 +147,24 @@ export const validateLoginParameters = (
 		return createErrorMsg("Missing login credentials");
 	}
 
+	if (typeof userId !== "string" || typeof password !== "string") {
+		return createErrorMsg("Login credentials must be type string");
+	}
+
+	return null;
+};
+
+export const validateChangePasswordParameters = (
+	token: string,
+	password: string
+): message | null => {
+	if (!token || !password) {
+		return createErrorMsg("Missing required parameters");
+	}
+
+	if (typeof token !== "string" || typeof password !== "string") {
+		return createErrorMsg("Parameters must be type string");
+	}
+
 	return null;
 };
