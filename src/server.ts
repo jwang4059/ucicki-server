@@ -62,8 +62,12 @@ app.post("/login", (req, res) => {
 	User.login(req, res);
 });
 
-app.get("/settings", (req, res) => {
-	User.settings(req, res);
+app.post("/logout", (req, res) => {
+	User.logout(req, res);
+});
+
+app.get("/user/summary", (req, res) => {
+	User.summary(req, res);
 });
 
 app.post("/deactivate", (req, res) => {

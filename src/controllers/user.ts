@@ -1,10 +1,13 @@
 import db from "../db";
 import { Request, Response } from "express";
 import argon2 from "argon2";
+
+import { COOKIE_NAME } from "../constants";
 import {
 	validateRegisterParameters,
 	validateLoginParameters,
 } from "../utils/validate";
+import { createErrorMsg, createSuccessMsg } from "../utils/messages";
 
 const register = async (req: Request, res: Response) => {
 	const { userId, firstName, lastName, dob, phone, email, password } = req.body;
@@ -34,9 +37,13 @@ const register = async (req: Request, res: Response) => {
 
 		req.session.userId = userId;
 
-		res.json(null);
+		res.json(createSuccessMsg("Successfully registered account"));
 	} catch (e) {
-		res.status(400).json(e);
+		if (e.code === "23505") {
+			res.status(400).json(createErrorMsg("User already exists"));
+		} else {
+			res.status(400).json(createErrorMsg(e.detail));
+		}
 	}
 };
 
@@ -57,10 +64,7 @@ const login = async (req: Request, res: Response) => {
 		);
 
 		if (!rows[0]) {
-			res.status(400).json({
-				field: "login",
-				message: "Invalid login credentials",
-			});
+			res.status(400).json(createErrorMsg("Invalid login credentials"));
 			return;
 		}
 
@@ -68,24 +72,31 @@ const login = async (req: Request, res: Response) => {
 
 		if (await argon2.verify(passwordHash, password)) {
 			req.session.userId = userId;
-			res.json(null);
+			res.json(createSuccessMsg("Successfully logged in"));
 		} else {
-			res.status(400).json({
-				field: "login",
-				message: "Invalid login credentials",
-			});
+			res.status(400).json(createErrorMsg("Invalid login credentials"));
 		}
 	} catch (e) {
 		res.status(400).json(e);
 	}
 };
 
-const settings = async (req: Request, res: Response) => {
+const logout = (req: Request, res: Response) => {
+	req.session.destroy((err) => {
+		if (err) {
+			console.log(err);
+			res.status(400).json(createErrorMsg("Unable to logout"));
+			return;
+		}
+
+		res.clearCookie(COOKIE_NAME);
+		res.json(createSuccessMsg("Successfully logged out"));
+	});
+};
+
+const summary = async (req: Request, res: Response) => {
 	if (!req.session.userId) {
-		res.status(400).json({
-			field: "login",
-			message: "Must be signed in to view user settings",
-		});
+		res.status(400).json(createErrorMsg("Must be logged in to view this page"));
 		return;
 	}
 
@@ -137,7 +148,8 @@ const deactivate = async (req: Request, res: Response) => {
 export default {
 	register,
 	login,
-	settings,
+	logout,
+	summary,
 	update,
 	deactivate,
 };

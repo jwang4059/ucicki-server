@@ -1,4 +1,4 @@
-export interface errorMessage {
-	field: string;
+export interface message {
+	status: string;
 	message: string;
 }
