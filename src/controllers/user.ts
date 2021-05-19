@@ -1,13 +1,17 @@
 import db from "../db";
 import { Request, Response } from "express";
+import { RedisClient } from "redis";
 import argon2 from "argon2";
+import { v4 as uuidv4 } from "uuid";
 
-import { COOKIE_NAME } from "../constants";
+import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
 import {
 	validateRegisterParameters,
 	validateLoginParameters,
+	validateEmail,
 } from "../utils/validate";
 import { createErrorMsg, createSuccessMsg } from "../utils/messages";
+import { sendEmail } from "../utils/sendEmail";
 
 const register = async (req: Request, res: Response) => {
 	const { userId, firstName, lastName, dob, phone, email, password } = req.body;
@@ -94,7 +98,46 @@ const logout = (req: Request, res: Response) => {
 	});
 };
 
-const summary = async (req: Request, res: Response) => {
+const forgotPassword = async (
+	req: Request,
+	res: Response,
+	client: RedisClient
+) => {
+	const { email } = req.body;
+
+	const errors = validateEmail(email);
+
+	if (errors) {
+		res.status(400).json(errors);
+		return;
+	}
+
+	try {
+		const { rows } = await db.query(
+			"SELECT user_id FROM users WHERE email = $1",
+			[email]
+		);
+
+		const token = uuidv4();
+		client.set(
+			FORGET_PASSWORD_PREFIX + token,
+			rows[0].user_id,
+			"EX",
+			60 * 60 * 24
+		);
+
+		await sendEmail(
+			email,
+			`<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+		);
+
+		res.json(createSuccessMsg("Successfully sent email."));
+	} catch (e) {
+		res.status(400).json(e);
+	}
+};
+
+const info = async (req: Request, res: Response) => {
 	if (!req.session.userId) {
 		res.status(400).json(createErrorMsg("Must be logged in to view this page"));
 		return;
@@ -149,7 +192,8 @@ export default {
 	register,
 	login,
 	logout,
-	summary,
+	forgotPassword,
+	info,
 	update,
 	deactivate,
 };
