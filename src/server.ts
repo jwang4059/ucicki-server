@@ -1,6 +1,6 @@
 import express from "express";
 import session from "express-session";
-import redis from "redis";
+import Redis from "ioredis";
 import connectRedis from "connect-redis";
 import cors from "cors";
 
@@ -20,7 +20,7 @@ const HOST = "0.0.0.0";
 // App
 const app = express();
 const RedisStore = connectRedis(session);
-const redisClient = redis.createClient();
+const redis = new Redis();
 
 app.set("trust porxy", 1);
 app.use(
@@ -32,7 +32,7 @@ app.use(
 
 app.use(
 	session({
-		store: new RedisStore({ client: redisClient }),
+		store: new RedisStore({ client: redis }),
 		name: COOKIE_NAME,
 		cookie: {
 			domain: "localhost",
@@ -67,11 +67,15 @@ app.post("/logout", (req, res) => {
 });
 
 app.post("/forgot-password", (req, res) => {
-	User.forgotPassword(req, res, redisClient);
+	User.forgotPassword(req, res, redis);
 });
 
 app.post("/change-password", (req, res) => {
-	User.changePassword(req, res, redisClient);
+	User.changePassword(req, res, redis);
+});
+
+app.post("/change-password-token", (req, res) => {
+	User.validatePassswordToken(req, res, redis);
 });
 
 app.get("/user/info", (req, res) => {

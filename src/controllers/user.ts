@@ -1,7 +1,6 @@
 import db from "../db";
 import { Request, Response } from "express";
-import { RedisClient } from "redis";
-import { promisify } from "util";
+import { Redis } from "ioredis";
 import argon2 from "argon2";
 import { v4 as uuidv4 } from "uuid";
 
@@ -100,11 +99,7 @@ const logout = (req: Request, res: Response) => {
 	});
 };
 
-const forgotPassword = async (
-	req: Request,
-	res: Response,
-	client: RedisClient
-) => {
+const forgotPassword = async (req: Request, res: Response, redis: Redis) => {
 	const { email } = req.body;
 
 	const errors = validateEmail(email);
@@ -121,7 +116,7 @@ const forgotPassword = async (
 		);
 
 		const token = uuidv4();
-		client.set(
+		await redis.set(
 			FORGET_PASSWORD_PREFIX + token,
 			rows[0].user_id,
 			"EX",
@@ -139,11 +134,29 @@ const forgotPassword = async (
 	}
 };
 
-const changePassword = async (
+const validatePassswordToken = async (
 	req: Request,
 	res: Response,
-	client: RedisClient
+	redis: Redis
 ) => {
+	const { token } = req.body;
+
+	const key = FORGET_PASSWORD_PREFIX + token;
+
+	try {
+		const reply = await redis.exists(key);
+
+		if (reply === 1) {
+			res.json(createSuccessMsg("Token exists"));
+		} else {
+			res.status(400).json(createErrorMsg("Token does not exist"));
+		}
+	} catch (e) {
+		res.status(400).json(e);
+	}
+};
+
+const changePassword = async (req: Request, res: Response, redis: Redis) => {
 	const { token, password } = req.body;
 
 	const errors = validateChangePasswordParameters(token, password);
@@ -156,8 +169,7 @@ const changePassword = async (
 	const key = FORGET_PASSWORD_PREFIX + token;
 
 	try {
-		const getAsync = promisify(client.get).bind(client);
-		const userId = await getAsync(key);
+		const userId = await redis.get(key);
 
 		if (!userId) {
 			res.status(400).json(createErrorMsg("Token has expired"));
@@ -170,7 +182,7 @@ const changePassword = async (
 			userId,
 		]);
 
-		client.del(key);
+		redis.del(key);
 
 		res.json(createSuccessMsg("Successfully changed password."));
 	} catch (e) {
@@ -234,6 +246,7 @@ export default {
 	login,
 	logout,
 	forgotPassword,
+	validatePassswordToken,
 	changePassword,
 	info,
 	update,
