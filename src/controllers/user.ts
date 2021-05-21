@@ -149,7 +149,7 @@ const validatePassswordToken = async (
 		if (reply === 1) {
 			res.json(createSuccessMsg("Token exists"));
 		} else {
-			res.status(400).json(createErrorMsg("Token does not exist"));
+			res.status(404).json(createErrorMsg("Token does not exist"));
 		}
 	} catch (e) {
 		res.status(400).json(e);
