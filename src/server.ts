@@ -4,6 +4,7 @@ import Redis from "ioredis";
 import connectRedis from "connect-redis";
 import cors from "cors";
 
+import "./env";
 import { __prod__, COOKIE_NAME } from "./constants";
 import User from "./controllers/user";
 
@@ -13,19 +14,15 @@ declare module "express-session" {
 	}
 }
 
-// Constants
-const PORT = 4000;
-const HOST = "0.0.0.0";
-
 // App
 const app = express();
 const RedisStore = connectRedis(session);
-const redis = new Redis();
+const redis = new Redis(process.env.REDIS_URL);
 
 app.set("trust porxy", 1);
 app.use(
 	cors({
-		origin: "http://localhost:3000",
+		origin: process.env.CORS_ORIGIN,
 		credentials: true,
 	})
 );
@@ -35,14 +32,14 @@ app.use(
 		store: new RedisStore({ client: redis }),
 		name: COOKIE_NAME,
 		cookie: {
-			domain: "localhost",
+			domain: process.env.HOST,
 			path: "/",
 			httpOnly: true,
 			sameSite: "lax",
 			secure: __prod__,
 			maxAge: 1000 * 60 * 60 * 7, // 7 days
 		},
-		secret: "secret",
+		secret: <string>process.env.SESSION_SECRET,
 		saveUninitialized: false,
 		resave: false,
 	})
@@ -86,6 +83,6 @@ app.post("/deactivate", (req, res) => {
 	User.deactivate(req, res);
 });
 
-app.listen(PORT, HOST, () => {
-	console.log(`Running on http://${HOST}:${PORT}`);
+app.listen(parseInt(<string>process.env.PORT), <string>process.env.HOST, () => {
+	console.log(`Running on http://${process.env.HOST}:${process.env.PORT}`);
 });
