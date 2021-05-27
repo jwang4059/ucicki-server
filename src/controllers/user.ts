@@ -13,6 +13,7 @@ import {
 } from "../utils/validate";
 import { createErrorMsg, createSuccessMsg } from "../utils/messages";
 import { sendEmail } from "../utils/sendEmail";
+import { genForgotPasswordEmail } from "../utils/generateEmail";
 
 const register = async (req: Request, res: Response) => {
 	const { userId, firstName, lastName, dob, phone, email, password } = req.body;
@@ -111,21 +112,31 @@ const forgotPassword = async (req: Request, res: Response, redis: Redis) => {
 
 	try {
 		const { rows } = await db.query(
-			"SELECT user_id FROM users WHERE email = $1",
+			"SELECT user_id, first_name, last_name FROM users WHERE email = $1",
 			[email]
 		);
+
+		if (!rows[0]) {
+			res.status(400).json(createErrorMsg("Invalid email"));
+			return;
+		}
+
+		const { user_id, first_name, last_name } = rows[0];
 
 		const token = uuidv4();
 		await redis.set(
 			FORGET_PASSWORD_PREFIX + token,
-			rows[0].user_id,
+			user_id,
 			"EX",
-			60 * 60 * 24
+			60 * 60 * 2 //Token valid for 2 hours
 		);
 
 		await sendEmail(
 			email,
-			`<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+			genForgotPasswordEmail(
+				`${first_name} ${last_name}`,
+				`http://localhost:3000/change-password/${token}`
+			)
 		);
 
 		res.json(createSuccessMsg("Successfully sent email."));
