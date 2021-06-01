@@ -32,7 +32,7 @@ app.use(
 		store: new RedisStore({ client: redis }),
 		name: COOKIE_NAME,
 		cookie: {
-			domain: process.env.HOST,
+			domain: __prod__ ? ".ucicirclek.xyz" : undefined,
 			path: "/",
 			httpOnly: true,
 			sameSite: "lax",
@@ -83,6 +83,6 @@ app.post("/deactivate", (req, res) => {
 	User.deactivate(req, res);
 });
 
-app.listen(parseInt(<string>process.env.PORT), <string>process.env.HOST, () => {
-	console.log(`Running on http://${process.env.HOST}:${process.env.PORT}`);
+app.listen(parseInt(<string>process.env.PORT), () => {
+	console.log(`Running on http://ucicirclek.xyz:${process.env.PORT}`);
 });
