@@ -133,10 +133,7 @@ const forgotPassword = async (req: Request, res: Response, redis: Redis) => {
 
 		await sendEmail(
 			email,
-			genForgotPasswordEmail(
-				`${first_name} ${last_name}`,
-				`http://localhost:3000/change-password/${token}`
-			)
+			genForgotPasswordEmail(`${first_name} ${last_name}`, token)
 		);
 
 		res.json(createSuccessMsg("Successfully sent email."));

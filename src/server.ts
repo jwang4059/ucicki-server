@@ -47,10 +47,6 @@ app.use(
 
 app.use(express.json());
 
-app.get("/", (_, res) => {
-	res.send("Hello World");
-});
-
 app.post("/register", (req, res) => {
 	User.register(req, res);
 });
@@ -84,5 +80,5 @@ app.post("/deactivate", (req, res) => {
 });
 
 app.listen(parseInt(<string>process.env.PORT), () => {
-	console.log(`Running on http://ucicirclek.xyz:${process.env.PORT}`);
+	console.log(`Running on http://www.ucicirclek.xyz:${process.env.PORT}`);
 });
