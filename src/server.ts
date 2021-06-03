@@ -80,5 +80,5 @@ app.post("/deactivate", (req, res) => {
 });
 
 app.listen(parseInt(<string>process.env.PORT), () => {
-	console.log(`Running on http://www.ucicirclek.xyz:${process.env.PORT}`);
+	console.log(`Running on ${process.env.HOST}`);
 });

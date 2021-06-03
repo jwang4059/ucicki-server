@@ -133,6 +133,7 @@ const forgotPassword = async (req: Request, res: Response, redis: Redis) => {
 
 		await sendEmail(
 			email,
+			"Password Reset",
 			genForgotPasswordEmail(`${first_name} ${last_name}`, token)
 		);
 
