@@ -1,5 +1,12 @@
 # ucicki-server
 
+## Getting Started
+
+```
+npm run watch
+npm run dev
+```
+
 ## Backend Tech Stack
 
 ### Node.js
